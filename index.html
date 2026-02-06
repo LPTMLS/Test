@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viaje de Cumpleaños - Mi Navidad 🌍</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Quicksand:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+            height: 100vh;
+        }
+        
+        /* Canvas para Three.js */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            cursor: grab;
+        }
+        
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+        
+        /* Control de rotación */
+        .rotation-control {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 100;
+        }
+        
+        .control-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8B0000, #FFD700);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            font-size: 28px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(139, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(139, 0, 0, 0.7);
+        }
+        
+        .control-hint {
+            position: fixed;
+            bottom: 100px;
+            left: 30px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            max-width: 150px;
+            z-index: 100;
+            opacity: 0;
+            animation: fadeInHint 0.5s ease 2s forwards;
+        }
+        
+        @keyframes fadeInHint {
+            to { opacity: 1; }
+        }
+        
+        /* Overlay de UI */
+        .ui-overlay {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .ui-overlay > * {
+            pointer-events: auto;
+        }
+        
+        /* Título principal */
+        .main-title {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 100;
+        }
+        
+        .main-title h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(32px, 5vw, 56px);
+            font-weight: 900;
+            background: linear-gradient(135deg, #FFD700 0%, #8B0000 50%, #FFD700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(139, 0, 0, 0.5);
+            margin-bottom: 10px;
+            animation: titleGlow 4s ease-in-out infinite;
+        }
+        
+        @keyframes titleGlow {
+            0%, 100% { filter: brightness(1) drop-shadow(0 0 20px rgba(139, 0, 0, 0.3)); }
+            50% { filter: brightness(1.3) drop-shadow(0 0 30px rgba(139, 0, 0, 0.6)); }
+        }
+        
+        .main-title p {
+            font-size: clamp(14px, 2vw, 18px);
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+        }
+        
+        /* Panel de información */
+        .info-panel {
+            position: fixed;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%);
+            width: 380px;
+            max-height: 85vh;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 0, 0, 0.3);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.7),
+                inset 0 0 40px rgba(139, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(139, 0, 0, 0.3);
+        }
+        
+        .panel-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            color: #8B0000;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        /* Contador principal */
+        .main-counter {
+            text-align: center;
+            margin: 25px 0;
+        }
+        
+        .counter-number {
+            font-size: 64px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFD700, #8B0000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+        
+        .counter-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Cuenta regresiva */
+        .countdown-section {
+            background: rgba(139, 0, 0, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(139, 0, 0, 0.2);
+        }
+        
+        .countdown-title {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .countdown-time {
+            font-family: 'Courier New', monospace;
+            font-size: 28px;
+            color: #FFD700;
+            text-align: center;
+            font-weight: 700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        
+        .next-country {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        /* Mensajes */
+        .messages-container {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-top: 20px;
+        }
+        
+        .message {
+            background: rgba(139, 0, 0, 0.1);
+            border-left: 3px solid #8B0000;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 15px;
+            animation: slideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.3s ease;
+        }
+        
+        .message:hover {
+            background: rgba(139, 0, 0, 0.2);
+            transform: translateX(-5px);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .message-flag {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+        
+        .message-country {
+            font-weight: 600;
+            font-size: 16px;
+            color: #FFD700;
+        }
+        
+        .message-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 400;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .message.final {
+            background: linear-gradient(135deg, rgba(139, 0, 0, 0.3), rgba(255, 215, 0, 0.2));
+            border-left-color: #FFD700;
+            border-width: 4px;
+        }
+        
+        /* Scrollbar personalizado */
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .messages-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #8B0000;
+            border-radius: 10px;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #A52A2A;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .info-panel {
+                width: 320px;
+                right: 20px;
+                max-height: 80vh;
+                padding: 20px;
+            }
+            
+            .main-title {
+                top: 20px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .info-panel {
+                position: fixed;
+                bottom: 0;
+                right: 0;
+                left: 0;
+                top: auto;
+                transform: none;
+                width: 100%;
+                max-height: 50vh;
+                border-radius: 24px 24px 0 0;
+                padding: 20px;
+            }
+            
+            .main-title {
+                top: 15px;
+            }
+            
+            .main-title h1 {
+                font-size: 28px;
+            }
+            
+            .main-title p {
+                font-size: 14px;
+            }
+            
+            .messages-container {
+                max-height: 200px;
+            }
+            
+            .rotation-control {
+                bottom: auto;
+                top: 100px;
+                left: 15px;
+            }
+            
+            .control-hint {
+                bottom: auto;
+                top: 170px;
+                left: 15px;
+                font-size: 10px;
+                max-width: 120px;
+            }
+        }
+        
+        /* Loading screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+        
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            color: #8B0000;
+            margin-bottom: 30px;
+        }
+        
+        .loading-bar {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #8B0000, #FFD700);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-text">Preparando tu regalo...</div>
+        <div class="loading-bar">
+            <div class="loading-progress" id="loading-progress"></div>
+        </div>
+    </div>
+    
+    <!-- Canvas para Three.js -->
+    <div id="canvas-container"></div>
+    
+    <!-- UI Overlay -->
+    <div class="ui-overlay">
+        <!-- Título -->
+        <div class="main-title">
+            <h1>Viaje de Cumpleaños</h1>
+            <p>El mundo celebrándote, Mi Navidad 🎂</p>
+        </div>
+        
+        <!-- Panel de información -->
+        <div class="info-panel">
+            <div class="panel-header">
+                <h2>Países Celebrándote</h2>
+            </div>
+            
+            <div class="main-counter">
+                <div class="counter-number" id="counter">0</div>
+                <div class="counter-label">de 19 países</div>
+            </div>
+            
+            <div class="countdown-section">
+                <div class="countdown-title" id="countdown-label">Tu cumpleaños en Perú en:</div>
+                <div class="countdown-time" id="countdown-time">--:--:--</div>
+                <div class="next-country" id="next-country"></div>
+            </div>
+            
+            <div class="messages-container" id="messages"></div>
+        </div>
+        
+        <!-- Control de rotación -->
+        <div class="rotation-control">
+            <button class="control-button" id="rotation-button" title="Pausar/Reanudar rotación">
+                ⏸️
+            </button>
+        </div>
+        
+        <div class="control-hint">
+            Arrastra para rotar<br>
+            Scroll para zoom<br>
+            Doble clic para reiniciar
+        </div>
+        
+    </div>
+
+    <script>
+        // ========== CONFIGURACIÓN ==========
+        const CONFIG = {
+            targetDate: new Date('2026-02-11T00:00:00-05:00'), // Medianoche del 11 en Perú
+            firstCountryStart: new Date('2026-02-10T06:00:00-05:00'), // 6 AM del 10 en Perú
+            musicEnabled: false
+        };
+        
+        // ========== DATOS DE PAÍSES ==========
+        const COUNTRIES = [
+            {
+                name: 'Kiribati',
+                flag: '🇰🇮',
+                timezone: 14,
+                position: { lat: -1.4, lon: -157.4 },
+                message: 'Tu día acaba de comenzar en el mundo, y yo ya estoy aquí esperando para ser el primero en decírtelo.'
+            },
+            {
+                name: 'Tonga',
+                flag: '🇹🇴',
+                timezone: 13,
+                position: { lat: -21.2, lon: -175.2 },
+                message: 'Ya son dos países celebrándote mientras yo sigo contando las horas para que sea tu momento aquí.'
+            },
+            {
+                name: 'Nueva Zelanda',
+                flag: '🇳🇿',
+                timezone: 13,
+                position: { lat: -40.9, lon: 174.9 },
+                message: 'Cada país que se ilumina me recuerda que pronto podré decírtelo de frente, mi amor.'
+            },
+            {
+                name: 'Australia',
+                flag: '🇦🇺',
+                timezone: 11,
+                position: { lat: -25.3, lon: 133.8 },
+                message: 'El continente más lejano ya celebra a mi Navidad. Cada hora que pasa me acerca más a ti.'
+            },
+            {
+                name: 'Japón',
+                flag: '🇯🇵',
+                timezone: 9,
+                position: { lat: 36.2, lon: 138.3 },
+                message: 'La tierra del sol naciente te desea feliz cumpleaños. Y yo sigo esperándote.'
+            },
+            {
+                name: 'China',
+                flag: '🇨🇳',
+                timezone: 8,
+                position: { lat: 35.9, lon: 104.2 },
+                message: 'Más de mil millones de personas ya están en tu día, pero ninguna te ama como yo.'
+            },
+            {
+                name: 'Tailandia',
+                flag: '🇹🇭',
+                timezone: 7,
+                position: { lat: 15.9, lon: 100.5 },
+                message: 'Asia entera ya te celebra. Faltan menos horas para que sea tu momento aquí conmigo.'
+            },
+            {
+                name: 'India',
+                flag: '🇮🇳',
+                timezone: 5.5,
+                position: { lat: 20.6, lon: 78.9 },
+                message: 'Faltan menos horas, mi Navidad. Cada minuto que pasa me emociona más por celebrarte.'
+            },
+            {
+                name: 'Rusia',
+                flag: '🇷🇺',
+                timezone: 3,
+                position: { lat: 61.5, lon: 105.3 },
+                message: 'El país más grande del mundo ya está en tu día. Y yo sigo contando cada segundo.'
+            },
+            {
+                name: 'Turquía',
+                flag: '🇹🇷',
+                timezone: 3,
+                position: { lat: 38.9, lon: 35.2 },
+                message: 'Entre dos continentes, Turquía te celebra. El mundo entero se va iluminando para ti.'
+            },
+            {
+                name: 'Sudáfrica',
+                flag: '🇿🇦',
+                timezone: 2,
+                position: { lat: -30.6, lon: 22.9 },
+                message: 'África se une a la celebración. Tu día avanza por cada rincón del planeta.'
+            },
+            {
+                name: 'Alemania',
+                flag: '🇩🇪',
+                timezone: 1,
+                position: { lat: 51.2, lon: 10.5 },
+                message: 'Europa central ya está en tu día. Cada país que se ilumina es un paso más cerca de ti.'
+            },
+            {
+                name: 'España',
+                flag: '🇪🇸',
+                timezone: 1,
+                position: { lat: 40.5, lon: -3.7 },
+                message: 'El mundo sigue avanzando hacia tu momento. Yo aquí, esperándote con todo mi amor.'
+            },
+            {
+                name: 'Reino Unido',
+                flag: '🇬🇧',
+                timezone: 0,
+                position: { lat: 55.4, lon: -3.4 },
+                message: 'Ya casi es tu hora aquí. No puedo esperar para que todo el mundo esté en tu día.'
+            },
+            {
+                name: 'Brasil',
+                flag: '🇧🇷',
+                timezone: -3,
+                position: { lat: -14.2, lon: -51.9 },
+                message: 'Solo faltan dos horas, mi amor. Dos horas para que finalmente sea tu cumpleaños donde realmente importa: aquí, contigo.'
+            },
+            {
+                name: 'Argentina',
+                flag: '🇦🇷',
+                timezone: -3,
+                position: { lat: -38.4, lon: -63.6 },
+                message: 'Última hora de espera. Estoy nervioso y emocionado, como si fuera mi propio cumpleaños. Porque tu felicidad es la mía.'
+            },
+            {
+                name: 'Perú',
+                flag: '🇵🇪',
+                timezone: -5,
+                position: { lat: -9.2, lon: -75.0 },
+                message: `🎉 ¡FELIZ CUMPLEAÑOS MI NAVIDAD! 🎉
+
+Finalmente es tu día aquí, donde estás tú.
+Todo el mundo ya te está celebrando, pero yo quería ser el primero en decírtelo desde que comenzó tu día en cualquier rincón del planeta.
+
+He estado esperando cada hora, viendo cómo el mundo se iluminaba para ti, pensando en lo afortunado que soy de poder celebrarte.
+
+No tengo regalos caros ni cenas elegantes hoy, pero tengo esto: mi tiempo, mi esfuerzo, mi amor y esta promesa de que cada año que venga, haré todo lo posible para que tu cumpleaños sea especial.
+
+Te amo con todo mi corazón, mi Navidad.
+Espero que este pequeño viaje por el mundo te haya hecho sonreír.
+
+Feliz cumpleaños 💕`
+            }
+        ];
+        
+        // ========== THREE.JS SETUP ==========
+        let scene, camera, renderer, earth, atmosphere, stars;
+        let illuminatedCountries = [];
+        let currentCountryIndex = 0;
+        let countryMarkers = [];
+        let countryBorders = {}; // Store country border meshes
+        let controls;
+        let autoRotate = true;
+        let userInteracting = false;
+        let rotationSpeed = 0.0005;
+        let moon; // Store moon reference
+        let moonOrbitAngle = 0;
+        
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                45,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 0, 3);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            
+            // Add OrbitControls for interactivity
+            addControls();
+            
+            // Create Earth
+            createEarth();
+            
+            // Create Moon
+            createMoon();
+            
+            // Create atmosphere
+            createAtmosphere();
+            
+            // Create stars
+            createStars();
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+            scene.add(ambientLight);
+            
+            const sunLight = new THREE.DirectionalLight(0xfff8e7, 2.5);
+            sunLight.position.set(5, 2, 5);
+            sunLight.castShadow = false;
+            scene.add(sunLight);
+            
+            // Add realistic Sun with texture
+            const sunGeometry = new THREE.SphereGeometry(0.3, 64, 64);
+            const textureLoader = new THREE.TextureLoader();
+            const sunTexture = textureLoader.load('2k_sun.jpg');
+            
+            const sunMaterial = new THREE.MeshBasicMaterial({
+                map: sunTexture,
+                emissive: new THREE.Color(0xfff8e7),
+                emissiveMap: sunTexture,
+                emissiveIntensity: 1.2
+            });
+            
+            const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+            sun.position.copy(sunLight.position);
+            scene.add(sun);
+            
+            // Add sun glow effect (improved)
+            const sunGlowGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const sunGlowMaterial = new THREE.ShaderMaterial({
+                vertexShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        vNormal = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        float intensity = pow(0.8 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
+                        gl_FragColor = vec4(1.0, 0.95, 0.8, 1.0) * intensity;
+                    }
+                `,
+                side: THREE.BackSide,
+                blending: THREE.AdditiveBlending,
+                transparent: true
+            });
+            const sunGlow = new THREE.Mesh(sunGlowGeometry, sunGlowMaterial);
+            sunGlow.position.copy(sun.position);
+            scene.add(sunGlow);
+            
+            // Add subtle fill light from opposite side
+            const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+            fillLight.position.set(-5, -1, -5);
+            scene.add(fillLight);
+            
+            // Animation loop
+            animate();
+            
+            // Resize handler
+            window.addEventListener('resize', onWindowResize);
+            
+            // Simulate loading
+            simulateLoading();
+        }
+        
+        function addControls() {
+            // Simple orbit controls implementation
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            let rotation = { x: 0, y: 0 };
+            
+            // Mouse events
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                userInteracting = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+                    
+                    rotation.y += deltaX * 0.005;
+                    rotation.x += deltaY * 0.005;
+                    
+                    // Limit vertical rotation
+                    rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotation.x));
+                    
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                }
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => {
+                isDragging = false;
+                setTimeout(() => { userInteracting = false; }, 2000); // Resume auto-rotate after 2s
+            });
+            
+            renderer.domElement.addEventListener('mouseleave', () => {
+                isDragging = false;
+            });
+            
+            // Touch events for mobile
+            let touchStartPos = { x: 0, y: 0 };
+            
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    userInteracting = true;
+                    touchStartPos = { 
+                        x: e.touches[0].clientX, 
+                        y: e.touches[0].clientY 
+                    };
+                }
+            });
+            
+            renderer.domElement.addEventListener('touchmove', (e) => {
+                if (isDragging && e.touches.length === 1) {
+                    e.preventDefault();
+                    const deltaX = e.touches[0].clientX - touchStartPos.x;
+                    const deltaY = e.touches[0].clientY - touchStartPos.y;
+                    
+                    rotation.y += deltaX * 0.005;
+                    rotation.x += deltaY * 0.005;
+                    
+                    rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotation.x));
+                    
+                    touchStartPos = { 
+                        x: e.touches[0].clientX, 
+                        y: e.touches[0].clientY 
+                    };
+                }
+            });
+            
+            renderer.domElement.addEventListener('touchend', () => {
+                isDragging = false;
+                setTimeout(() => { userInteracting = false; }, 2000);
+            });
+            
+            // Zoom with mouse wheel
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomSpeed = 0.1;
+                const minDistance = 1.5;
+                const maxDistance = 5;
+                
+                camera.position.z += e.deltaY * 0.001 * zoomSpeed;
+                camera.position.z = Math.max(minDistance, Math.min(maxDistance, camera.position.z));
+            }, { passive: false });
+            
+            // Double click to reset view
+            renderer.domElement.addEventListener('dblclick', () => {
+                rotation = { x: 0, y: 0 };
+                camera.position.set(0, 0, 3);
+            });
+            
+            // Apply rotation to camera
+            function updateCameraRotation() {
+                const distance = camera.position.length();
+                camera.position.x = distance * Math.sin(rotation.y) * Math.cos(rotation.x);
+                camera.position.y = distance * Math.sin(rotation.x);
+                camera.position.z = distance * Math.cos(rotation.y) * Math.cos(rotation.x);
+                camera.lookAt(0, 0, 0);
+            }
+            
+            // Store for use in animate loop
+            controls = { rotation, updateCameraRotation };
+        }
+        
+        function createEarth() {
+            const geometry = new THREE.SphereGeometry(1, 256, 256);
+            
+            // Load real NASA textures
+            const textureLoader = new THREE.TextureLoader();
+            
+            // Load day texture (continents and oceans)
+            const dayTexture = textureLoader.load('2k_earth_daymap.jpg');
+            
+            // Load night texture (city lights)
+            const nightTexture = textureLoader.load('2k_earth_nightmap.jpg');
+            
+            // Create material with real textures
+            const material = new THREE.MeshPhongMaterial({
+                map: dayTexture,
+                specular: new THREE.Color('#333333'),
+                shininess: 20,
+                emissive: new THREE.Color('#000000'),
+                emissiveMap: nightTexture,
+                emissiveIntensity: 1.0
+            });
+            
+            earth = new THREE.Mesh(geometry, material);
+            scene.add(earth);
+            
+            // Add realistic clouds layer
+            const cloudsTexture = textureLoader.load('2k_earth_clouds.jpg');
+            const cloudsGeometry = new THREE.SphereGeometry(1.01, 256, 256);
+            const cloudsMaterial = new THREE.MeshPhongMaterial({
+                map: cloudsTexture,
+                transparent: true,
+                opacity: 0.4,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+            
+            const clouds = new THREE.Mesh(cloudsGeometry, cloudsMaterial);
+            earth.add(clouds);
+            
+            // Store clouds for separate animation
+            earth.userData.clouds = clouds;
+        }
+        
+        function adjustColor(hex, brightness) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            if (!result) return hex;
+            
+            let r = parseInt(result[1], 16) * brightness;
+            let g = parseInt(result[2], 16) * brightness;
+            let b = parseInt(result[3], 16) * brightness;
+            
+            r = Math.min(255, Math.max(0, r));
+            g = Math.min(255, Math.max(0, g));
+            b = Math.min(255, Math.max(0, b));
+            
+            return `rgb(${r},${g},${b})`;
+        }
+        
+        function createMoon() {
+            const moonGeometry = new THREE.SphereGeometry(0.27, 64, 64); // Aproximadamente 1/4 del tamaño de la Tierra
+            const textureLoader = new THREE.TextureLoader();
+            const moonTexture = textureLoader.load('2k_moon.jpg');
+            
+            const moonMaterial = new THREE.MeshPhongMaterial({
+                map: moonTexture,
+                shininess: 5,
+                emissive: new THREE.Color('#0a0a0a'),
+                emissiveIntensity: 0.05
+            });
+            
+            moon = new THREE.Mesh(moonGeometry, moonMaterial);
+            
+            // Position moon at a realistic distance from Earth
+            const moonDistance = 2.5; // Distance from Earth
+            moon.position.set(moonDistance, 0, 0);
+            
+            scene.add(moon);
+        }
+        
+        function createAtmosphere() {
+            // Outer glow atmosphere
+            const geometry = new THREE.SphereGeometry(1.1, 128, 128);
+            
+            // Shader material for realistic atmosphere glow
+            const material = new THREE.ShaderMaterial({
+                vertexShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        vNormal = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+                        gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
+                    }
+                `,
+                side: THREE.BackSide,
+                blending: THREE.AdditiveBlending,
+                transparent: true
+            });
+            
+            atmosphere = new THREE.Mesh(geometry, material);
+            scene.add(atmosphere);
+            
+            // Inner atmosphere layer
+            const innerGeometry = new THREE.SphereGeometry(1.05, 128, 128);
+            const innerMaterial = new THREE.MeshPhongMaterial({
+                color: 0x4488ff,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.BackSide
+            });
+            
+            const innerAtmosphere = new THREE.Mesh(innerGeometry, innerMaterial);
+            scene.add(innerAtmosphere);
+        }
+        
+        function createStars() {
+            // Multiple layers of stars for depth
+            const layers = [
+                { count: 3000, size: 1.2, distance: 500, color: 0xffffff },
+                { count: 5000, size: 0.8, distance: 700, color: 0xffffee },
+                { count: 4000, size: 0.5, distance: 900, color: 0xeeeeff }
+            ];
+            
+            layers.forEach(layer => {
+                const geometry = new THREE.BufferGeometry();
+                const vertices = [];
+                const colors = [];
+                
+                for (let i = 0; i < layer.count; i++) {
+                    // Distribute more stars along the "milky way" band
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos((Math.random() * 2) - 1);
+                    
+                    // Add clustering for milky way effect
+                    const milkyWayBias = Math.abs(phi - Math.PI / 2) < 0.3 ? 2 : 1;
+                    
+                    const r = layer.distance * (0.8 + Math.random() * 0.4);
+                    const x = r * Math.sin(phi) * Math.cos(theta) * milkyWayBias;
+                    const y = r * Math.sin(phi) * Math.sin(theta);
+                    const z = r * Math.cos(phi);
+                    
+                    vertices.push(x, y, z);
+                    
+                    // Vary star colors slightly
+                    const colorVariation = 0.9 + Math.random() * 0.1;
+                    colors.push(colorVariation, colorVariation, colorVariation);
+                }
+                
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+                
+                const material = new THREE.PointsMaterial({
+                    size: layer.size,
+                    vertexColors: true,
+                    transparent: true,
+                    opacity: 0.8,
+                    sizeAttenuation: true
+                });
+                
+                const starField = new THREE.Points(geometry, material);
+                scene.add(starField);
+            });
+            
+            // Add nebula-like background
+            const nebulaGeometry = new THREE.PlaneGeometry(2000, 2000);
+            const nebulaCanvas = document.createElement('canvas');
+            nebulaCanvas.width = 512;
+            nebulaCanvas.height = 512;
+            const ctx = nebulaCanvas.getContext('2d');
+            
+            // Create gradient nebula effect
+            const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+            gradient.addColorStop(0, 'rgba(139, 0, 0, 0.05)');
+            gradient.addColorStop(0.5, 'rgba(75, 0, 130, 0.03)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 512, 512);
+            
+            const nebulaTexture = new THREE.CanvasTexture(nebulaCanvas);
+            const nebulaMaterial = new THREE.MeshBasicMaterial({
+                map: nebulaTexture,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            
+            const nebula = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
+            nebula.position.z = -500;
+            scene.add(nebula);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Apply user rotation if controls exist
+            if (controls && controls.updateCameraRotation) {
+                controls.updateCameraRotation();
+            }
+            
+            // Auto-rotate earth only if user is not interacting
+            if (autoRotate && !userInteracting) {
+                earth.rotation.y += rotationSpeed;
+            }
+            
+            // Clouds rotate slightly faster for realism
+            if (earth.userData.clouds) {
+                earth.userData.clouds.rotation.y += 0.0003;
+            }
+            
+            // Atmosphere follows earth rotation
+            if (atmosphere) {
+                atmosphere.rotation.y = earth.rotation.y;
+            }
+            
+            // Moon orbits around Earth
+            if (moon) {
+                moonOrbitAngle += 0.0003; // Slow orbit
+                const moonDistance = 2.5;
+                moon.position.x = Math.cos(moonOrbitAngle) * moonDistance;
+                moon.position.z = Math.sin(moonOrbitAngle) * moonDistance;
+                moon.rotation.y += 0.0002; // Moon rotates slowly
+            }
+            
+            // Animate country markers with pulsing effect
+            countryMarkers.forEach(({ marker, glow }) => {
+                const scale = 1 + Math.sin(Date.now() * 0.002) * 0.2;
+                marker.scale.set(scale, scale, scale);
+                glow.scale.set(scale * 1.5, scale * 1.5, scale * 1.5);
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function simulateLoading() {
+            const progress = document.getElementById('loading-progress');
+            const loadingScreen = document.getElementById('loading-screen');
+            let percent = 0;
+            
+            const interval = setInterval(() => {
+                percent += 5;
+                progress.style.width = percent + '%';
+                
+                if (percent >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loadingScreen.classList.add('hidden');
+                        startBirthdayExperience();
+                    }, 500);
+                }
+            }, 100);
+        }
+        
+        // ========== BIRTHDAY LOGIC ==========
+        function startBirthdayExperience() {
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+            
+            // Check if we should start illuminating countries
+            checkCountryIllumination();
+            setInterval(checkCountryIllumination, 60000); // Check every minute
+        }
+        
+        function updateCountdown() {
+            const now = new Date();
+            const diff = CONFIG.targetDate - now;
+            
+            if (diff <= 0) {
+                document.getElementById('countdown-label').textContent = '¡Es tu cumpleaños!';
+                document.getElementById('countdown-time').textContent = '00:00:00';
+                return;
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            let timeString = '';
+            if (days > 0) {
+                timeString = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            } else {
+                timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+            
+            document.getElementById('countdown-time').textContent = timeString;
+        }
+        
+        function checkCountryIllumination() {
+            const now = new Date();
+            
+            // Check if we're in the illumination period
+            if (now < CONFIG.firstCountryStart) {
+                return;
+            }
+            
+            // Calculate how many countries should be illuminated
+            const hoursSinceStart = (now - CONFIG.firstCountryStart) / (1000 * 60 * 60);
+            const countriesToIlluminate = Math.floor(hoursSinceStart) + 1;
+            
+            // Illuminate countries up to current time
+            for (let i = currentCountryIndex; i < Math.min(countriesToIlluminate, COUNTRIES.length); i++) {
+                illuminateCountry(i);
+            }
+        }
+        
+        function illuminateCountry(index) {
+            if (index >= COUNTRIES.length || index < currentCountryIndex) return;
+            
+            const country = COUNTRIES[index];
+            currentCountryIndex = index + 1;
+            
+            // Update counter
+            document.getElementById('counter').textContent = currentCountryIndex;
+            
+            // Add message
+            addMessage(country, index === COUNTRIES.length - 1);
+            
+            // TODO: Add actual 3D illumination effect on globe
+            console.log(`Illuminating ${country.name}`);
+            
+            // Create country marker
+            createCountryMarker(country);
+            
+            // Illuminate country border
+            illuminateCountryBorder(country);
+        }
+        
+        function illuminateCountryBorder(country) {
+            // Create approximate country shapes based on their territories
+            const countryShapes = getCountryShape(country.name);
+            
+            countryShapes.forEach(shape => {
+                // Create geometry for country outline
+                const points = [];
+                shape.coordinates.forEach(coord => {
+                    const phi = (90 - coord.lat) * (Math.PI / 180);
+                    const theta = (coord.lon + 180) * (Math.PI / 180);
+                    
+                    const radius = 1.005; // Slightly above earth surface
+                    const x = -(radius * Math.sin(phi) * Math.cos(theta));
+                    const z = (radius * Math.sin(phi) * Math.sin(theta));
+                    const y = (radius * Math.cos(phi));
+                    
+                    points.push(new THREE.Vector3(x, y, z));
+                });
+                
+                // Close the shape
+                if (points.length > 0) {
+                    points.push(points[0].clone());
+                }
+                
+                // Create line for border
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const lineMaterial = new THREE.LineBasicMaterial({
+                    color: 0x8B0000, // Rojo vino
+                    linewidth: 2,
+                    transparent: true,
+                    opacity: 0
+                });
+                
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                earth.add(line);
+                
+                // Animate border appearance
+                let opacity = 0;
+                const animateBorder = () => {
+                    if (opacity < 0.8) {
+                        opacity += 0.02;
+                        line.material.opacity = opacity;
+                        requestAnimationFrame(animateBorder);
+                    }
+                };
+                animateBorder();
+                
+                // Create filled region (mesh)
+                if (points.length > 3) {
+                    // Simple approach: create triangulated mesh for the region
+                    const shape3D = new THREE.Shape();
+                    
+                    // Project to 2D for Shape creation (simplified)
+                    const projected = points.map(p => {
+                        // Simple projection - can be improved
+                        return new THREE.Vector2(
+                            Math.atan2(p.z, p.x),
+                            Math.asin(p.y)
+                        );
+                    });
+                    
+                    if (projected.length > 0) {
+                        shape3D.moveTo(projected[0].x, projected[0].y);
+                        for (let i = 1; i < projected.length; i++) {
+                            shape3D.lineTo(projected[i].x, projected[i].y);
+                        }
+                    }
+                    
+                    const fillGeometry = new THREE.ShapeGeometry(shape3D);
+                    const fillMaterial = new THREE.MeshBasicMaterial({
+                        color: 0x8B0000,
+                        transparent: true,
+                        opacity: 0,
+                        side: THREE.DoubleSide
+                    });
+                    
+                    const fillMesh = new THREE.Mesh(fillGeometry, fillMaterial);
+                    
+                    // Position and orient the mesh on the sphere
+                    fillMesh.position.set(
+                        points[0].x * 1.003,
+                        points[0].y * 1.003,
+                        points[0].z * 1.003
+                    );
+                    
+                    earth.add(fillMesh);
+                    
+                    // Animate fill
+                    let fillOpacity = 0;
+                    const animateFill = () => {
+                        if (fillOpacity < 0.3) {
+                            fillOpacity += 0.005;
+                            fillMesh.material.opacity = fillOpacity;
+                            requestAnimationFrame(animateFill);
+                        }
+                    };
+                    setTimeout(animateFill, 300);
+                }
+            });
+        }
+        
+        function getCountryShape(countryName) {
+            // Simplified country shapes (key regions)
+            // In production, this would load from actual GeoJSON
+            const shapes = {
+                'Kiribati': [{
+                    coordinates: [
+                        { lat: 3, lon: -157 }, { lat: 2, lon: -156 },
+                        { lat: 1, lon: -157 }, { lat: 2, lon: -158 }
+                    ]
+                }],
+                'Tonga': [{
+                    coordinates: [
+                        { lat: -18, lon: -174 }, { lat: -20, lon: -174 },
+                        { lat: -22, lon: -175 }, { lat: -21, lon: -176 },
+                        { lat: -19, lon: -175 }
+                    ]
+                }],
+                'Nueva Zelanda': [{
+                    coordinates: [
+                        { lat: -34, lon: 172 }, { lat: -36, lon: 174 },
+                        { lat: -38, lon: 176 }, { lat: -41, lon: 174 },
+                        { lat: -43, lon: 172 }, { lat: -45, lon: 170 },
+                        { lat: -46, lon: 168 }, { lat: -44, lon: 167 },
+                        { lat: -41, lon: 167 }, { lat: -38, lon: 168 },
+                        { lat: -36, lon: 170 }
+                    ]
+                }],
+                'Australia': [{
+                    coordinates: [
+                        { lat: -10, lon: 142 }, { lat: -12, lon: 145 },
+                        { lat: -15, lon: 148 }, { lat: -19, lon: 149 },
+                        { lat: -23, lon: 151 }, { lat: -27, lon: 153 },
+                        { lat: -31, lon: 153 }, { lat: -35, lon: 151 },
+                        { lat: -38, lon: 147 }, { lat: -39, lon: 144 },
+                        { lat: -38, lon: 141 }, { lat: -35, lon: 138 },
+                        { lat: -32, lon: 136 }, { lat: -28, lon: 134 },
+                        { lat: -24, lon: 133 }, { lat: -20, lon: 133 },
+                        { lat: -16, lon: 130 }, { lat: -12, lon: 128 },
+                        { lat: -11, lon: 130 }, { lat: -11, lon: 135 },
+                        { lat: -11, lon: 139 }
+                    ]
+                }],
+                'Japón': [{
+                    coordinates: [
+                        { lat: 45, lon: 142 }, { lat: 43, lon: 145 },
+                        { lat: 41, lon: 141 }, { lat: 38, lon: 141 },
+                        { lat: 36, lon: 140 }, { lat: 35, lon: 139 },
+                        { lat: 33, lon: 130 }, { lat: 31, lon: 131 },
+                        { lat: 33, lon: 133 }, { lat: 35, lon: 135 },
+                        { lat: 37, lon: 137 }, { lat: 39, lon: 140 },
+                        { lat: 42, lon: 140 }
+                    ]
+                }],
+                'China': [{
+                    coordinates: [
+                        { lat: 53, lon: 125 }, { lat: 50, lon: 127 },
+                        { lat: 48, lon: 135 }, { lat: 45, lon: 135 },
+                        { lat: 42, lon: 130 }, { lat: 40, lon: 124 },
+                        { lat: 38, lon: 119 }, { lat: 35, lon: 119 },
+                        { lat: 32, lon: 121 }, { lat: 29, lon: 121 },
+                        { lat: 26, lon: 119 }, { lat: 23, lon: 116 },
+                        { lat: 21, lon: 110 }, { lat: 22, lon: 106 },
+                        { lat: 23, lon: 100 }, { lat: 26, lon: 97 },
+                        { lat: 28, lon: 92 }, { lat: 30, lon: 90 },
+                        { lat: 32, lon: 89 }, { lat: 35, lon: 91 },
+                        { lat: 37, lon: 94 }, { lat: 40, lon: 96 },
+                        { lat: 42, lon: 100 }, { lat: 45, lon: 106 },
+                        { lat: 47, lon: 111 }, { lat: 49, lon: 116 },
+                        { lat: 51, lon: 120 }
+                    ]
+                }],
+                'Tailandia': [{
+                    coordinates: [
+                        { lat: 20, lon: 100 }, { lat: 18, lon: 102 },
+                        { lat: 16, lon: 104 }, { lat: 14, lon: 102 },
+                        { lat: 12, lon: 100 }, { lat: 10, lon: 99 },
+                        { lat: 8, lon: 98 }, { lat: 6, lon: 100 },
+                        { lat: 8, lon: 101 }, { lat: 10, lon: 101 },
+                        { lat: 13, lon: 100 }, { lat: 16, lon: 100 },
+                        { lat: 18, lon: 99 }
+                    ]
+                }],
+                'India': [{
+                    coordinates: [
+                        { lat: 35, lon: 74 }, { lat: 32, lon: 78 },
+                        { lat: 29, lon: 82 }, { lat: 27, lon: 88 },
+                        { lat: 25, lon: 92 }, { lat: 23, lon: 91 },
+                        { lat: 21, lon: 88 }, { lat: 19, lon: 84 },
+                        { lat: 16, lon: 80 }, { lat: 13, lon: 77 },
+                        { lat: 10, lon: 76 }, { lat: 8, lon: 77 },
+                        { lat: 10, lon: 79 }, { lat: 13, lon: 80 },
+                        { lat: 16, lon: 82 }, { lat: 19, lon: 85 },
+                        { lat: 22, lon: 86 }, { lat: 24, lon: 84 },
+                        { lat: 26, lon: 82 }, { lat: 28, lon: 77 },
+                        { lat: 30, lon: 74 }, { lat: 32, lon: 74 }
+                    ]
+                }],
+                'Rusia': [{
+                    coordinates: [
+                        { lat: 70, lon: 40 }, { lat: 68, lon: 60 },
+                        { lat: 66, lon: 80 }, { lat: 64, lon: 100 },
+                        { lat: 62, lon: 120 }, { lat: 60, lon: 140 },
+                        { lat: 58, lon: 160 }, { lat: 55, lon: 165 },
+                        { lat: 52, lon: 156 }, { lat: 50, lon: 142 },
+                        { lat: 48, lon: 132 }, { lat: 46, lon: 122 },
+                        { lat: 45, lon: 112 }, { lat: 46, lon: 100 },
+                        { lat: 48, lon: 88 }, { lat: 50, lon: 76 },
+                        { lat: 52, lon: 64 }, { lat: 54, lon: 52 },
+                        { lat: 56, lon: 40 }, { lat: 60, lon: 32 },
+                        { lat: 64, lon: 35 }, { lat: 67, lon: 38 }
+                    ]
+                }],
+                'Turquía': [{
+                    coordinates: [
+                        { lat: 42, lon: 27 }, { lat: 41, lon: 30 },
+                        { lat: 41, lon: 33 }, { lat: 40, lon: 36 },
+                        { lat: 39, lon: 40 }, { lat: 38, lon: 43 },
+                        { lat: 37, lon: 44 }, { lat: 36, lon: 42 },
+                        { lat: 36, lon: 36 }, { lat: 36, lon: 30 },
+                        { lat: 37, lon: 27 }, { lat: 39, lon: 26 },
+                        { lat: 41, lon: 26 }
+                    ]
+                }],
+                'Sudáfrica': [{
+                    coordinates: [
+                        { lat: -22, lon: 16 }, { lat: -24, lon: 20 },
+                        { lat: -26, lon: 25 }, { lat: -28, lon: 29 },
+                        { lat: -30, lon: 31 }, { lat: -32, lon: 29 },
+                        { lat: -34, lon: 26 }, { lat: -34, lon: 23 },
+                        { lat: -33, lon: 18 }, { lat: -30, lon: 17 },
+                        { lat: -27, lon: 17 }, { lat: -24, lon: 17 }
+                    ]
+                }],
+                'Alemania': [{
+                    coordinates: [
+                        { lat: 55, lon: 8 }, { lat: 54, lon: 12 },
+                        { lat: 52, lon: 14 }, { lat: 51, lon: 15 },
+                        { lat: 50, lon: 13 }, { lat: 48, lon: 11 },
+                        { lat: 47, lon: 9 }, { lat: 48, lon: 7 },
+                        { lat: 49, lon: 6 }, { lat: 51, lon: 6 },
+                        { lat: 52, lon: 7 }, { lat: 54, lon: 8 }
+                    ]
+                }],
+                'España': [{
+                    coordinates: [
+                        { lat: 43, lon: -9 }, { lat: 43, lon: -2 },
+                        { lat: 42, lon: 3 }, { lat: 40, lon: 3 },
+                        { lat: 38, lon: 0 }, { lat: 37, lon: -2 },
+                        { lat: 36, lon: -6 }, { lat: 37, lon: -7 },
+                        { lat: 39, lon: -8 }, { lat: 41, lon: -9 }
+                    ]
+                }],
+                'Reino Unido': [{
+                    coordinates: [
+                        { lat: 59, lon: -3 }, { lat: 58, lon: -1 },
+                        { lat: 56, lon: 0 }, { lat: 54, lon: 0 },
+                        { lat: 52, lon: 1 }, { lat: 50, lon: 0 },
+                        { lat: 50, lon: -4 }, { lat: 51, lon: -5 },
+                        { lat: 53, lon: -5 }, { lat: 55, lon: -4 },
+                        { lat: 57, lon: -4 }
+                    ]
+                }],
+                'Brasil': [{
+                    coordinates: [
+                        { lat: 5, lon: -60 }, { lat: 2, lon: -51 },
+                        { lat: -2, lon: -48 }, { lat: -6, lon: -35 },
+                        { lat: -10, lon: -36 }, { lat: -14, lon: -39 },
+                        { lat: -18, lon: -40 }, { lat: -22, lon: -43 },
+                        { lat: -26, lon: -48 }, { lat: -30, lon: -52 },
+                        { lat: -32, lon: -53 }, { lat: -30, lon: -56 },
+                        { lat: -26, lon: -58 }, { lat: -22, lon: -60 },
+                        { lat: -18, lon: -63 }, { lat: -14, lon: -68 },
+                        { lat: -10, lon: -72 }, { lat: -6, lon: -74 },
+                        { lat: -2, lon: -73 }, { lat: 1, lon: -70 },
+                        { lat: 3, lon: -64 }
+                    ]
+                }],
+                'Argentina': [{
+                    coordinates: [
+                        { lat: -22, lon: -65 }, { lat: -25, lon: -62 },
+                        { lat: -28, lon: -59 }, { lat: -31, lon: -58 },
+                        { lat: -34, lon: -58 }, { lat: -37, lon: -57 },
+                        { lat: -40, lon: -63 }, { lat: -43, lon: -65 },
+                        { lat: -46, lon: -68 }, { lat: -50, lon: -70 },
+                        { lat: -52, lon: -69 }, { lat: -54, lon: -68 },
+                        { lat: -52, lon: -71 }, { lat: -49, lon: -73 },
+                        { lat: -46, lon: -73 }, { lat: -43, lon: -71 },
+                        { lat: -40, lon: -71 }, { lat: -37, lon: -70 },
+                        { lat: -34, lon: -70 }, { lat: -30, lon: -69 },
+                        { lat: -26, lon: -67 }, { lat: -23, lon: -66 }
+                    ]
+                }],
+                'Perú': [{
+                    coordinates: [
+                        { lat: -0.5, lon: -75 }, { lat: -3, lon: -70 },
+                        { lat: -6, lon: -74 }, { lat: -8, lon: -77 },
+                        { lat: -10, lon: -79 }, { lat: -12, lon: -77 },
+                        { lat: -14, lon: -76 }, { lat: -16, lon: -73 },
+                        { lat: -18, lon: -70 }, { lat: -17, lon: -69 },
+                        { lat: -15, lon: -69 }, { lat: -13, lon: -69 },
+                        { lat: -11, lon: -70 }, { lat: -9, lon: -71 },
+                        { lat: -7, lon: -73 }, { lat: -5, lon: -75 },
+                        { lat: -3, lon: -77 }, { lat: -1, lon: -79 }
+                    ]
+                }]
+            };
+            
+            return shapes[countryName] || [{ coordinates: [] }];
+        }
+        
+        function createCountryMarker(country) {
+            // Convert lat/lon to 3D position
+            const phi = (90 - country.position.lat) * (Math.PI / 180);
+            const theta = (country.position.lon + 180) * (Math.PI / 180);
+            
+            const radius = 1.02;
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const z = (radius * Math.sin(phi) * Math.sin(theta));
+            const y = (radius * Math.cos(phi));
+            
+            // Create glowing marker
+            const markerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
+            const markerMaterial = new THREE.MeshBasicMaterial({
+                color: 0x8B0000, // Rojo vino
+                transparent: true,
+                opacity: 0
+            });
+            
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            marker.position.set(x, y, z);
+            earth.add(marker);
+            
+            // Animate marker appearance
+            let opacity = 0;
+            const animateMarker = () => {
+                if (opacity < 1) {
+                    opacity += 0.02;
+                    marker.material.opacity = opacity;
+                    marker.scale.set(1 + Math.sin(Date.now() * 0.003) * 0.3, 
+                                    1 + Math.sin(Date.now() * 0.003) * 0.3, 
+                                    1 + Math.sin(Date.now() * 0.003) * 0.3);
+                    requestAnimationFrame(animateMarker);
+                }
+            };
+            animateMarker();
+            
+            // Create glow effect
+            const glowGeometry = new THREE.SphereGeometry(0.04, 16, 16);
+            const glowMaterial = new THREE.ShaderMaterial({
+                vertexShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        vNormal = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+                        gl_FragColor = vec4(0.545, 0.0, 0.0, 1.0) * intensity;
+                    }
+                `,
+                side: THREE.BackSide,
+                blending: THREE.AdditiveBlending,
+                transparent: true
+            });
+            
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            glow.position.copy(marker.position);
+            earth.add(glow);
+            
+            countryMarkers.push({ marker, glow });
+        }
+        
+        function addMessage(country, isFinal) {
+            const messagesContainer = document.getElementById('messages');
+            const message = document.createElement('div');
+            message.className = 'message' + (isFinal ? ' final' : '');
+            
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('es-PE', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+            });
+            
+            message.innerHTML = `
+                <div class="message-header">
+                    <span class="message-flag">${country.flag}</span>
+                    <span class="message-country">Feliz cumpleaños en ${country.name}</span>
+                </div>
+                <div class="message-content">${country.message}</div>
+                <div class="message-time">${timeString} - ${now.toLocaleDateString('es-PE')}</div>
+            `;
+            
+            messagesContainer.insertBefore(message, messagesContainer.firstChild);
+        }
+        
+        // ========== ROTATION CONTROL ==========
+        const rotationButton = document.getElementById('rotation-button');
+        
+        rotationButton.addEventListener('click', () => {
+            autoRotate = !autoRotate;
+            rotationButton.textContent = autoRotate ? '⏸️' : '▶️';
+            rotationButton.title = autoRotate ? 'Pausar rotación' : 'Reanudar rotación';
+        });
+        
+        // ========== INITIALIZE ==========
+        window.addEventListener('DOMContentLoaded', init3D);
+    </script>
+</body>
+</html>
